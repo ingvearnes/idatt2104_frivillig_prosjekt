@@ -47,8 +47,12 @@ pub async fn run(
     // Inbound: apply remote op's
     loop{
         match recv(&mut r).await? {
-            Message::Op(op) => doc.lock().await.remote_apply(op),
-            Message::Snapshot { .. } | Message::Hello { .. } => {} 
+            Message::Op(op) => {
+                let mut d = doc.lock().await;
+                d.remote_apply(op);
+                print!("\r[peer {my_replica_id}] {}", d.rga.to_string());
+            }
+            Message::Snapshot { .. } | Message::Hello { .. } => {}
         }
     }
 }

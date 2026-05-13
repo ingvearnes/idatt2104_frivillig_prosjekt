@@ -7,8 +7,11 @@ mod transport;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use logic::char::{CharId, RgaChar};
 use logic::doc::Document;
+use logic::op::Op;
 use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, Mutex};
 
@@ -31,9 +34,36 @@ enum Mode{
 async fn main() -> Result<()> {
     let cli = Cli::parse();
     let doc = Arc::new(Mutex::new(Document::new()));
+    
+    // FOR LATER: Spawn worker thread 
+    let (local_tx, local_rx) = mpsc::channel(64);
+    let doc_clone = Arc::clone(&doc);
+    let replica_id = cli.replica_id;
 
-    let (_local_tx, local_rx) = mpsc::channel(64);
-    // Spawn worker thread later
+    tokio::spawn(async move {
+        let stdin = BufReader::new(tokio::io::stdin());
+        let mut lines = stdin.lines();
+        let mut clock = 0u64;
+        let mut prev: Option<CharId> = None; 
+
+        while let Ok(Some(line)) = lines.next_line().await{
+            let ops: Vec<Op> = {
+                let mut d = doc_clone.lock().await;
+                line.chars().chain(std::iter::once('\n')).map(|ch| {
+                    clock += 1;
+                    let id = CharId{ clock, replica_id };
+                    let rga_char = RgaChar{ id: id.clone(), origin: prev.take(), value: ch, deleted: false};
+                    prev = Some(id);
+                    let op = Op::Insert { c: rga_char.clone() };
+                    d.local_insert(rga_char);
+                    op
+                }).collect()
+            };
+            for op in ops{
+                let _ = local_tx.send(op).await;
+            }
+        }
+    });
 
     match cli.mode{
         Mode::Listen { addr } => {
