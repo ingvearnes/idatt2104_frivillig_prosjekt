@@ -1,5 +1,5 @@
-// cargo run -p peer -- --replica-id 1 listen
-// cargo run -p peer -- --replica-id 2 connect 127.0.0.1:9000
+// cargo run -p peer -- listen
+// cargo run -p peer -- connect 127.0.0.1:9000
 
 mod protocol;
 mod session;
@@ -20,7 +20,7 @@ use tokio::sync::{mpsc, Mutex};
 struct Cli{
     // Unique id for this peer
     #[arg(long)]
-    replica_id: u64,
+    replica_id: Option<u64>,
     #[command(subcommand)]
     mode: Mode,
 }
@@ -39,7 +39,7 @@ async fn main() -> Result<()> {
     // FOR LATER: Spawn worker thread 
     let (local_tx, local_rx) = mpsc::channel(64);
     let doc_clone = Arc::clone(&doc);
-    let replica_id = cli.replica_id;
+    let replica_id = cli.replica_id.unwrap_or_else(rand::random);
 
     tokio::task::spawn_blocking(move || {
         enable_raw_mode()?;
@@ -54,11 +54,11 @@ async fn main() -> Result<()> {
             println!("listening on {addr}");
             let (stream, who) = l.accept().await?;
             print!("peer from {who}");
-            session::run(stream, doc, cli.replica_id, local_rx, true).await?;
+            session::run(stream, doc, replica_id, local_rx, true).await?;
         }
         Mode::Connect { addr } => {
             let stream = TcpStream::connect(&addr).await?;
-            session::run(stream, doc, cli.replica_id, local_rx, false).await?;
+            session::run(stream, doc, replica_id, local_rx, false).await?;
         }
     }
     Ok(())
