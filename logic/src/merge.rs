@@ -1,5 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::char::{CharId, RgaChar};
 
+#[derive(Serialize, Deserialize)]
 pub struct Rga{
     pub chars: Vec<RgaChar>,
 }

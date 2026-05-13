@@ -1,4 +1,6 @@
 use crate::merge::Rga;
+use crate::op::{Op, OpLog};
+use crate::char::{CharId, RgaChar};
 
 pub struct Document{
     pub rga: Rga,

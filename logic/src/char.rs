@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CharId{
     pub clock: u64,
     pub replica_id: u64,
@@ -21,7 +23,7 @@ impl Ord for CharId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RgaChar{
     pub id: CharId,
     pub origin: Option<CharId>,  //parent id
