@@ -39,7 +39,7 @@ pub async fn run(
 
     
     // Outbound: give local op's to peer
-    let send_task = tokio::spawn(async move{
+    let _ = tokio::spawn(async move{
         while let Some(op) = local_ops_rx.recv().await {
             if send(&mut w, &Message::Op(op)).await.is_err() { break; }
         }
