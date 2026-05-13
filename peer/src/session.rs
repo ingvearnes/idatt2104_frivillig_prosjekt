@@ -50,7 +50,6 @@ pub async fn run(
             Message::Op(op) => {
                 let mut d = doc.lock().await;
                 d.remote_apply(op);
-                print!("\r[peer {my_replica_id}] {}", d.rga.to_string());
             }
             Message::Snapshot { .. } | Message::Hello { .. } => {}
         }

@@ -24,7 +24,7 @@ impl Document{
         self.log.append(Op::Delete{ id });
     }
     pub fn remote_apply(&mut self, op: Op){
-        if self.log.iter().any(|e| e.id() == op.id()){
+        if self.already_seen(&op){
             return;
         }
         if let Op::Insert { c: ref ch } = op {
@@ -41,8 +41,7 @@ impl Document{
         self.apply_and_drain(op);
     }
     pub fn apply_and_drain(&mut self, op: Op){
-        let already_seen = self.log.iter().any(|existing| existing.id() == op.id());
-        if already_seen{
+        if self.already_seen(&op){
             return;
         }
         let landed_id = op.id().clone();
@@ -57,5 +56,13 @@ impl Document{
                 self.apply_and_drain(waiting_op);
             }
         }
+    }
+    
+    fn already_seen(&self, op: &Op) -> bool {
+        self.log.iter().any(|e| match (e, op) {
+            (Op::Insert { c: a }, Op::Insert { c: b }) => a.id == b.id,
+            (Op::Delete { id: a }, Op::Delete { id: b }) => a == b,
+            _ => false,
+        })
     }
 }
