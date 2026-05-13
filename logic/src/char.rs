@@ -21,6 +21,7 @@ impl Ord for CharId {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct RgaChar{
     pub id: CharId,
     pub origin: Option<CharId>,  //parent id
