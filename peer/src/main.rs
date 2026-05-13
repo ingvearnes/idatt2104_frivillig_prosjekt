@@ -15,6 +15,7 @@ use logic::op::Op;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, Mutex};
+use std::io::{self, Write};
 
 #[derive(Parser)]
 struct Cli{
@@ -46,6 +47,19 @@ async fn main() -> Result<()> {
         let result = input_loop(doc_clone, local_tx, replica_id);
         disable_raw_mode()?;
         result
+    });
+
+    let render_doc = Arc::clone(&doc);
+    tokio::task::spawn_blocking(move || {
+        let rt = tokio::runtime::Handle::current();
+        loop {
+            {
+                let d = rt.block_on(render_doc.lock());
+                print!("\x1b[H\x1b[J{}", d.rga.to_string());
+                io::stdout().flush().unwrap();
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
     });
 
     match cli.mode{
