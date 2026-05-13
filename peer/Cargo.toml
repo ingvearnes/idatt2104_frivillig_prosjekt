@@ -10,3 +10,4 @@ serde = { version = "1", features = ["derive"] }
 bincode = "1.3"
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"
+crossterm = "0.27"
