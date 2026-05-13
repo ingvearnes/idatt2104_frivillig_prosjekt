@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::char::{CharId, RgaChar};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Op{
     Insert{ c: RgaChar },
     Delete{ id: CharId },
@@ -14,6 +15,7 @@ impl Op{
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct OpLog{
     ops: Vec<Op>,
 }
