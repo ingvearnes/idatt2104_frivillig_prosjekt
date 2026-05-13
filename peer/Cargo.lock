@@ -3,5 +3,12 @@
 version = 4
 
 [[package]]
+name = "logic"
+version = "0.1.0"
+
+[[package]]
 name = "peer"
 version = "0.1.0"
+dependencies = [
+ "logic",
+]
