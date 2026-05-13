@@ -5,13 +5,13 @@ pub struct Rga{
 }
 
 impl Rga{
-    pub fn new() -> Self{
+    pub fn new() -> Self {
         Self{chars: Vec::new()}
     }
 
     // Simple, but has O(n**2)
     pub fn apply_insert(&mut self, new_char: RgaChar){
-        // Start scanning after parent
+        // Start scanning, either beginning or right after parent char
         let start = match &new_char.origin{
             None => 0,
             Some(parent_id) => {
@@ -21,12 +21,12 @@ impl Rga{
             }
         };
 
-        // Skip if id is greater then current
         let mut pos = start;
+        // Check if char is sibling or in subtree 
         while pos < self.chars.len(){
             let exsisting = &self.chars[pos];
 
-            // If chars are sibling: tie-break
+            // If chars are sibling: tie-break.
             if exsisting.origin == new_char.origin {
                 if exsisting.id > new_char.id{
                     pos = pos + 1;
@@ -34,7 +34,9 @@ impl Rga{
                     break;
                 }
             } else{
+                // in_subtree becomes a bool: existing.origin -> Option<CharId>. as_ref -> Option<&CharId>. is_some_and() -> true if Option is "Some"
                 let in_subtree = exsisting.origin.as_ref().is_some_and(|o| {
+                    // Check if any previuously char has Id equal to o
                     self.chars[start..pos].iter().any(|c| &c.id == o)
                 });
                 if in_subtree {
