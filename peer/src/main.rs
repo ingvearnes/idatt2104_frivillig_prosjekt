@@ -94,7 +94,42 @@ fn input_loop(
             continue;
         };
 
-        let op = match code{
+        match code{
+            KeyCode::Left => {
+                let d = rt.block_on(doc.lock());
+                prev = match &prev {
+                    None => None, 
+                    Some(cur) => {
+                        let pos = d.rga.chars.iter().position(|c| &c.id == cur);
+                        pos.and_then(|p| {
+                            d.rga.chars[..p]
+                                .iter()
+                                .rev()
+                                .find(|c| !c.deleted)
+                                .map(|c| c.id.clone())
+                        })
+                    }
+                };
+                continue;
+            }
+            KeyCode::Right => {
+                let d = rt.block_on(doc.lock());
+                let next = match &prev {
+                    None => d.rga.chars.iter().find(|c| !c.deleted),
+                    Some(cur) => {
+                        let pos = d.rga.chars.iter().position(|c| &c.id == cur);
+                        pos.and_then(|p| d.rga.chars[p + 1..].iter().find(|c| !c.deleted))
+                    }
+                };
+                if let Some(c) = next {
+                    prev = Some(c.id.clone());
+                }
+                continue;
+            }
+            _ => {}
+        }
+
+        let op = match code {
             KeyCode::Char(ch) => {
                 counter += 1;
                 let id = CharId { counter, client_id };
