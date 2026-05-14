@@ -24,6 +24,8 @@ struct Cli{
     // Unique id for this peer
     #[arg(long)]
     client_id: Option<u64>,
+    #[arg(long)]
+    delay_ms: u64,
     #[command(subcommand)]
     mode: Mode,
 }
@@ -60,7 +62,7 @@ async fn main() -> Result<()> {
                 print!("\x1b[H\x1b[J{}", d.rga.to_string());
                 io::stdout().flush().unwrap();
             }
-            std::thread::sleep(std::time::Duration::from_millis(1000));
+            std::thread::sleep(std::time::Duration::from_millis(50));
         }
     });
 
@@ -70,11 +72,11 @@ async fn main() -> Result<()> {
             println!("listening on {addr}");
             let (stream, who) = l.accept().await?;
             print!("peer from {who}");
-            session::run(stream, doc, client_id, local_rx, true).await?;
+            session::run(stream, doc, client_id, local_rx, true, cli.delay_ms).await?;
         }
         Mode::Connect { addr } => {
             let stream = TcpStream::connect(&addr).await?;
-            session::run(stream, doc, client_id, local_rx, false).await?;
+            session::run(stream, doc, client_id, local_rx, false, cli.delay_ms).await?;
         }
     }
     Ok(())
