@@ -1,5 +1,7 @@
+// Connect to same subnet. Use ifconfig/ipconfig and ipv4-adress WITH :9000 at the end
 // cargo run -p peer -- listen
 // cargo run -p peer -- connect 127.0.0.1:9000
+
 
 mod protocol;
 mod session;
@@ -21,7 +23,9 @@ use std::io::{self, Write};
 struct Cli{
     // Unique id for this peer
     #[arg(long)]
-    replica_id: Option<u64>,
+    client_id: Option<u64>,
+    #[arg(long)]
+    delay_ms: u64,
     #[command(subcommand)]
     mode: Mode,
 }
@@ -37,14 +41,13 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     let doc = Arc::new(Mutex::new(Document::new()));
     
-    // FOR LATER: Spawn worker thread 
     let (local_tx, local_rx) = mpsc::channel(64);
     let doc_clone = Arc::clone(&doc);
-    let replica_id = cli.replica_id.unwrap_or_else(rand::random);
+    let client_id = cli.client_id.unwrap_or_else(rand::random);
 
     tokio::task::spawn_blocking(move || {
         enable_raw_mode()?;
-        let result = input_loop(doc_clone, local_tx, replica_id);
+        let result = input_loop(doc_clone, local_tx, client_id);
         disable_raw_mode()?;
         result
     });
@@ -68,11 +71,11 @@ async fn main() -> Result<()> {
             println!("listening on {addr}");
             let (stream, who) = l.accept().await?;
             print!("peer from {who}");
-            session::run(stream, doc, replica_id, local_rx, true).await?;
+            session::run(stream, doc, client_id, local_rx, true, cli.delay_ms).await?;
         }
         Mode::Connect { addr } => {
             let stream = TcpStream::connect(&addr).await?;
-            session::run(stream, doc, replica_id, local_rx, false).await?;
+            session::run(stream, doc, client_id, local_rx, false, cli.delay_ms).await?;
         }
     }
     Ok(())
@@ -81,10 +84,10 @@ async fn main() -> Result<()> {
 fn input_loop(
     doc: Arc<Mutex<Document>>,
     local_tx: mpsc::Sender<Op>,
-    replica_id: u64,
+    client_id: u64,
 ) -> Result<()> {
     let rt = tokio::runtime::Handle::current();
-    let mut clock = 0u64;
+    let mut counter = 0u64;
     let mut prev: Option<CharId> = None;
 
     loop{
@@ -129,8 +132,8 @@ fn input_loop(
 
         let op = match code {
             KeyCode::Char(ch) => {
-                clock += 1;
-                let id = CharId { clock, replica_id };
+                counter += 1;
+                let id = CharId { counter, client_id };
                 let rga_char = RgaChar{
                     id: id.clone(),
                     origin: prev.clone(),
@@ -144,8 +147,8 @@ fn input_loop(
                 op
             }
             KeyCode::Enter => {
-                clock += 1;
-                let id = CharId { clock, replica_id };
+                counter += 1;
+                let id = CharId { counter, client_id };
                 let rga_char = RgaChar{
                     id: id.clone(),
                     origin: prev.clone(),

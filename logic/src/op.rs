@@ -9,6 +9,7 @@ pub enum Op{
 impl Op{
     pub fn id(&self) -> &CharId{
         match self{
+            // Return the charId for either variant of operation
             Op::Insert{ c } => &c.id,
             Op::Delete{ id } => id,
         }
