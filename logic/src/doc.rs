@@ -78,9 +78,7 @@ impl Document{
 
 #[cfg(test)]
 mod tests{
-    use serde::de::value;
-
-use super::*;
+    use super::*;
     use crate::char::{CharId, RgaChar};
 
     fn id(counter: u64, client_id: u64) -> CharId {
