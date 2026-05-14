@@ -74,3 +74,71 @@ impl Document{
         })
     }
 }
+
+
+#[cfg(test)]
+mod tests{
+    use serde::de::value;
+
+use super::*;
+    use crate::char::{CharId, RgaChar};
+
+    fn id(counter: u64, client_id: u64) -> CharId {
+        CharId { counter, client_id }
+    }
+
+    fn rga_char(counter: u64, client_id: u64, origin: Option<CharId>, value: char) -> RgaChar{
+        RgaChar { id: id(counter, client_id), origin, value, deleted: false }
+    }
+
+    fn insert_op(counter: u64, client_id: u64, origin: Option<CharId>, value: char) -> Op{
+        Op::Insert { c: rga_char(counter, client_id, origin, value) }
+    }
+
+    #[test]
+    fn local_insert_appears_in_text() {
+        let mut doc = Document::new();
+        doc.local_insert(rga_char(1, 1, None, 'h'));
+        doc.local_insert(rga_char(2, 1, Some(id(1, 1)), 'i'));
+        assert_eq!(doc.rga.to_string(), "hi");
+    }
+
+    #[test]
+    fn local_delete_removes_char_from_text() {
+        let mut doc = Document::new();
+        doc.local_insert(rga_char(1, 1, None, 'a'));
+        doc.local_delete(id(1, 1));
+        assert_eq!(doc.rga.to_string(), "");
+    }
+
+    #[test]
+    fn remote_apply_duplicate_is_ignored() {
+        let mut doc = Document::new();
+        let op = insert_op(1, 1, None, 'a');
+        doc.remote_apply(op.clone());
+        doc.remote_apply(op);
+        assert_eq!(doc.rga.to_string(), "a");
+        assert_eq!(doc.log.len(), 1);
+    }
+
+    #[test]
+    fn remote_apply_out_of_order_resolves_when_parent_arrives() {
+        let mut doc = Document::new();
+        // 'b' depends on 'a', but arrives first
+        doc.remote_apply(insert_op(2, 1, Some(id(1, 1)), 'b'));
+        assert_eq!(doc.rga.to_string(), ""); // parked in pending
+        doc.remote_apply(insert_op(1, 1, None, 'a'));
+        assert_eq!(doc.rga.to_string(), "ab");
+    }
+
+    #[test]
+    fn pending_chain_resolves_in_one_go() {
+        let mut doc = Document::new();
+        // c -> b -> a, but arrive in reverse order
+        doc.remote_apply(insert_op(3, 1, Some(id(2, 1)), 'c'));
+        doc.remote_apply(insert_op(2, 1, Some(id(1, 1)), 'b'));
+        assert_eq!(doc.rga.to_string(), "");
+        doc.remote_apply(insert_op(1, 1, None, 'a')); // triggers the whole chain
+        assert_eq!(doc.rga.to_string(), "abc");
+    }
+}

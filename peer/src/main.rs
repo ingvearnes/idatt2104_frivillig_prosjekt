@@ -41,7 +41,6 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     let doc = Arc::new(Mutex::new(Document::new()));
     
-    // FOR LATER: Spawn worker thread 
     let (local_tx, local_rx) = mpsc::channel(64);
     let doc_clone = Arc::clone(&doc);
     let client_id = cli.client_id.unwrap_or_else(rand::random);

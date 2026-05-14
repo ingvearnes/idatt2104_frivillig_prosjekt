@@ -66,3 +66,50 @@ impl Rga{
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::char::{CharId, RgaChar};
+
+    fn id(counter: u64, client_id: u64) -> CharId{
+        CharId { counter, client_id }
+    }
+    fn ch(counter: u64, client_id: u64, origin: Option<CharId>, value: char) -> RgaChar {
+        RgaChar { id: id(counter, client_id), origin, value, deleted: false } 
+    }
+
+    #[test]
+    fn insert_single_char(){
+        let mut rga = Rga::new();
+        rga.apply_insert(ch(1, 1, None, 'a'));
+        assert_eq!(rga.to_string(), "a");
+    }
+
+    #[test]
+    fn insert_after_exsisting_builds_word(){
+        let mut rga = Rga::new();
+        rga.apply_insert(ch(1, 1, None, 'h'));
+        rga.apply_insert(ch(2, 1, Some(id(1,1)), 'i'));
+        assert_eq!(rga.to_string(), "hi");
+    }
+
+    #[test]
+    fn delete_tombstones_char_but_keeps_it_in_vec(){
+        let mut rga = Rga::new();
+        rga.apply_insert(ch(1, 1, None, 'a'));
+        rga.apply_delete(&id(1, 1));
+        assert_eq!(rga.to_string(), "");
+        assert!(rga.chars[0].deleted); //still physically present though
+    }
+
+    #[test]
+    fn concurrent_insert_higher_id_wins_left_position(){
+        //higher charid is put left
+        let mut rga = Rga::new();
+        rga.apply_insert(ch(1, 1, None, 'a'));
+        rga.apply_insert(ch(2, 2, Some(id(1,1)), 'x'));
+        rga.apply_insert(ch(2, 1, Some(id(1,1)), 'y'));
+        assert_eq!(rga.to_string(), "axy")
+    }
+}
