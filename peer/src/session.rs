@@ -13,6 +13,7 @@ pub async fn run(
     my_replica_id: u64,
     mut local_ops_rx: mpsc::Receiver<Op>,
     is_listener: bool,
+    delay_ms: u64,
 ) -> Result<()> {
     let (mut r, mut w) = stream.into_split();
 
@@ -41,6 +42,9 @@ pub async fn run(
     // Outbound: give local op's to peer
     let _ = tokio::spawn(async move{
         while let Some(op) = local_ops_rx.recv().await {
+            if delay_ms > 0 {
+                tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+            }
             if send(&mut w, &Message::Op(op)).await.is_err() { break; }
         }
     });
