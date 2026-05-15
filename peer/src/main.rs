@@ -1,7 +1,12 @@
-// Connect to same subnet. Use ifconfig/ipconfig and ipv4-adress WITH :9000 at the end
-// cargo run -p peer -- listen
-// cargo run -p peer -- connect 127.0.0.1:9000
+//! Conntaines main functionality for peer to peer communication and document synchronization
 
+// Connect to same subnet. 
+// Use ifconfig/ipconfig and ipv4-adress WITH :9000 at the end
+
+// Start Listener:
+// cargo run -p peer -- --delay-ms 0 listen
+// Connect to listener:
+// cargo run -p peer -- --delay-ms 0 connect 127.0.0.1:9000
 
 mod protocol;
 mod session;
@@ -9,7 +14,7 @@ mod transport;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use crossterm::event::{read, Event, KeyCode, KeyEvent};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, read};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use logic::char::{CharId, RgaChar};
 use logic::doc::Document;
@@ -19,9 +24,9 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, Mutex};
 use std::io::{self, Write};
 
+///Represents a peer client
 #[derive(Parser)]
 struct Cli{
-    // Unique id for this peer
     #[arg(long)]
     client_id: Option<u64>,
     #[arg(long)]
@@ -30,12 +35,19 @@ struct Cli{
     mode: Mode,
 }
 
+/// Represents the different peer modes
 #[derive(Subcommand)]
 enum Mode{
     Listen{ #[arg(long, default_value = "0.0.0.0:9000")] addr: String},
     Connect { addr: String },
 }
-
+/// Entry point for peer communication 
+/// 
+/// Handels:
+/// Reading terminal input
+/// Rendering document
+/// Establishing TCP connetion 
+/// 
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -45,6 +57,7 @@ async fn main() -> Result<()> {
     let doc_clone = Arc::clone(&doc);
     let client_id = cli.client_id.unwrap_or_else(rand::random);
 
+    // Thread for reading terminal keypress input
     tokio::task::spawn_blocking(move || {
         enable_raw_mode()?;
         let result = input_loop(doc_clone, local_tx, client_id);
@@ -52,6 +65,7 @@ async fn main() -> Result<()> {
         result
     });
 
+    // Reaload loop for disaplying loacl and remote doc changes
     let render_doc = Arc::clone(&doc);
     tokio::task::spawn_blocking(move || {
         let rt = tokio::runtime::Handle::current();
@@ -65,6 +79,7 @@ async fn main() -> Result<()> {
         }
     });
 
+    // Establish TCP Connection either listener og connecter peer
     match cli.mode{
         Mode::Listen { addr } => {
             let l = TcpListener::bind(&addr).await?;
@@ -81,6 +96,14 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+/// Reads keypresses and convert to operations
+/// 
+/// Handels:
+/// Deleting
+/// Insert char
+/// Space
+/// Cursor navigation
+/// 
 fn input_loop(
     doc: Arc<Mutex<Document>>,
     local_tx: mpsc::Sender<Op>,
@@ -90,11 +113,13 @@ fn input_loop(
     let mut counter = 0u64;
     let mut prev: Option<CharId> = None;
 
+
     loop{
-        let Event::Key(KeyEvent { code, .. }) = read()? else{
+        let Event::Key(KeyEvent { code, kind:KeyEventKind::Press,.. }) = read()? else{
             continue;
         };
 
+        // Handles cursor movement
         match code{
             KeyCode::Left => {
                 let d = rt.block_on(doc.lock());
@@ -130,6 +155,7 @@ fn input_loop(
             _ => {}
         }
 
+        // Handels Keypress for text editing
         let op = match code {
             KeyCode::Char(ch) => {
                 counter += 1;
@@ -181,6 +207,7 @@ fn input_loop(
             _ => continue,
         };
 
+        // Queues operation for nettwork transfer
         if local_tx.blocking_send(op).is_err(){
             break;
         }
