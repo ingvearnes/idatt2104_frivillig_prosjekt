@@ -1,6 +1,8 @@
+//! Operations of a user (their action on the doc). Contains a log as well
 use serde::{Serialize, Deserialize};
 use crate::char::{CharId, RgaChar};
 
+/// Single user operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Op{
     Insert{ c: RgaChar },
@@ -16,6 +18,7 @@ impl Op{
     }
 }
 
+/// Log of operations
 #[derive(Serialize, Deserialize)]
 pub struct OpLog{
     ops: Vec<Op>,

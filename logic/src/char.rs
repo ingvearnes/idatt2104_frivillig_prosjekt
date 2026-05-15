@@ -1,7 +1,10 @@
+//! A singel character and its ID to be used in the doc. 
+//! Char needs to be uniquely identified for RGA to work
 use serde::{Serialize, Deserialize};
 
-// CharId: unique identifier for each char in doc
-// If clock (insert-time) is identical to another, the replica_id will be tie-breaker -> first user wins
+/// Identifier for a char
+/// 
+/// If clock (insert-time) is identical to another, the replica_id will be tie-breaker -> first user wins
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CharId{
     pub counter: u64, //incrementing counter
@@ -24,7 +27,7 @@ impl Ord for CharId {
     }
 }
 
-// Represent a character
+/// Represent a character
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RgaChar{
     pub id: CharId, //id

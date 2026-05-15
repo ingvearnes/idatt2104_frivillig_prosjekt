@@ -1,9 +1,11 @@
+//! Representing document that will be used by each peer
 use std::collections::HashMap;
 use crate::merge::Rga;
 use crate::op::{Op, OpLog};
 use crate::char::{CharId, RgaChar};
 use serde::{Serialize, Deserialize};
 
+/// A singel document with updated operations for a synchronized text
 #[derive(Serialize, Deserialize)]
 pub struct Document{
     pub rga: Rga,
@@ -15,7 +17,7 @@ impl Document{
     pub fn new() -> Self{
         Self{rga: Rga::new(), log: OpLog::new(), pending: HashMap::new() }
     }
-    // Operations you apply, goes straight to RGA and log
+    /// Operations you apply, goes straight to RGA and log
     pub fn local_insert(&mut self, ch: RgaChar){
         self.rga.apply_insert(ch.clone());
         self.log.append(Op::Insert{ c: ch });
@@ -24,7 +26,7 @@ impl Document{
         self.rga.apply_delete(&id);
         self.log.append(Op::Delete{ id });
     }
-    // Operation from network
+    /// Operation from network
     pub fn remote_apply(&mut self, op: Op){
         if self.already_seen(&op){
             return;
@@ -43,7 +45,7 @@ impl Document{
         }
         self.apply_and_drain(op);
     }
-    // Checks if any operation is pending (no parent) -> recurse
+    /// Checks if any operation is pending (no parent) -> recurse
     pub fn apply_and_drain(&mut self, op: Op){
         //dedup guard: stop the recurson from making a double-apply
         if self.already_seen(&op){
@@ -65,7 +67,7 @@ impl Document{
         }
     }
     
-    // de-duplicate operation (if two peers has same operation/message, ignore one)
+    /// de-duplicate operation (if two peers has same operation/message, ignore one)
     fn already_seen(&self, op: &Op) -> bool {
         self.log.iter().any(|e| match (e, op) {
             (Op::Insert { c: a }, Op::Insert { c: b }) => a.id == b.id,
