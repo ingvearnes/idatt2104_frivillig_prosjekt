@@ -45,7 +45,15 @@ _Først litt kort om teori_:
 
 RGA virker i bunn og grunn ganske enkelt (når du forstår det). Eksempel: Du har en text som "Nettverksprogrammering er kult!", og to brukere ønsker å legge til et ord etter "er". Bruker A skriver "veldig" og bruker B skriver "ekstremt", det er ønskelig at vi får enten "veldig ekstremt" eller "ekstremt veldig". RGA virker som en chain/subtree, hvor første bokstav er det som avgjør hvilken chain (ord) som får settes inn. En bokstav består av en incrementing counter og en klient id. Om bruker A's "veldig" har sin første bokstav "v" med høyere id enn bruker B's "ekstremt" sin "e", vil hele ordet "veldig" komme først. Du ender opp med "Nettverksprogrammering er veldig ekstremt kult!" eller "Nettverksprogrammering er ekstremt veldig kult!", en setning som gir lite mening for oss, men som kan endres av skriverne når de innser de har skrevet på samme sted. Poenget er at ordet ikke skal flettes inn i hverandre og gjøre teksten umulig å løse. 
 
-Implementasjonen for hvorfor dette virker er at koden velger at størst id skal komme først. Poenget er at alle pc'er er i konsensus om dette, slik at alle ender opp med samme dokument.
+Implementasjonen for hvorfor dette virker er at koden velger at størst id skal komme først. Poenget er at alle pc'er er i konsensus om dette, slik at alle ender opp med samme dokument. logic-mappen inneholder selve CRDT. peer-mappen utfører bare peer-kommunikasjon.
+
+Vi kjører fra peer/main.rs. main.rs bruker session.rs som igjen bruker protocol.rs og transport.rs. Slik vil main.rs få opprettet en kobling mellom to peers. 
+
+main.rs bruker også char.rs, op.rs og doc.rs. Den registrere en input som konverteres til char. Denne blir plassert inn i det lokale dokumentet før den også blir puttet inn som en operasjon som sendes ut til peer. Slik vil også peer se din input. Det er hos doc.rs selve merge skjer, dokumentet må selv håndtere merging-problemer. 
+
+Detaljer for selve kode fins i rustdoc.
+
+Vi valgte peer-to-peer istedenfor klient-server fordi det gjør editoren mer responsiv å ikke måtte reise til potensielt ulike kontinenter når to pc'er egentlig sitter ved siden av hverandre. 
 
 ## Biblioteker
 
