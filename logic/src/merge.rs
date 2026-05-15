@@ -1,17 +1,19 @@
+//! This file is responsible for the merge algorithm in the case of a conflict
 use serde::{Serialize, Deserialize};
 use crate::char::{CharId, RgaChar};
 
+/// Replicated Growable Array with characters in it
 #[derive(Serialize, Deserialize)]
 pub struct Rga{
     pub chars: Vec<RgaChar>, //all chars in doc (including deleted one without garbage collection)
 }
 impl Rga{
-    // Constructor
+    /// Constructor
     pub fn new() -> Self {
         Self{chars: Vec::new()}
     }
 
-    // Simple, but has O(n**2)
+    /// Simple rga-merge. It has O(n**2)
     pub fn apply_insert(&mut self, new_char: RgaChar){
         // Start scanning and set beginning index, or right after parents char
         let start = match &new_char.origin {
@@ -51,14 +53,14 @@ impl Rga{
         self.chars.insert(pos, new_char);
     }
 
-    // Tombstone 
+    /// Tombstone-applier
     pub fn apply_delete(&mut self, id: &CharId){
         if let Some(c) = self.chars.iter_mut().find(|c| &c.id == id){
             c.deleted = true;
         }
     }
 
-    // Build visible string
+    /// Build visible string
     pub fn to_string(&self) -> String{
         self.chars.iter()
             .filter(|c| !c.deleted)

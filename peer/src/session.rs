@@ -1,3 +1,4 @@
+//! Manages the peer-to-peer sission over a single TCP connection
 use crate::protocol::Message;
 use crate::transport::{recv, send};
 use anyhow::Result;
@@ -7,10 +8,11 @@ use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::{mpsc, Mutex};
 
+/// The session itself, using protocol and transport
 pub async fn run(
     stream: TcpStream,
     doc: Arc<Mutex<Document>>,
-    my_replica_id: u64,
+    my_client_id: u64,
     mut local_ops_rx: mpsc::Receiver<Op>,
     is_listener: bool,
     delay_ms: u64,
@@ -18,14 +20,14 @@ pub async fn run(
     let (mut r, mut w) = stream.into_split();
 
     // Handshake
-    send(&mut w, &Message::Hello { replica_id: my_replica_id }).await?;
-    let Message::Hello { replica_id: peer_id } = recv(&mut r).await? 
+    send(&mut w, &Message::Hello { client_id: my_client_id }).await?;
+    let Message::Hello { client_id: peer_id } = recv(&mut r).await? 
     else {
         anyhow::bail!("expected Hello");
     };
-    println!("connected to replica {peer_id}");
+    println!("connected to client {peer_id}");
 
-    // Listener send current state; joiner waits for it
+    // Listener send current state (op's); joiner waits for it
     if is_listener{
         let snapshot: Vec<Op> = {
             let d = doc.lock().await;
