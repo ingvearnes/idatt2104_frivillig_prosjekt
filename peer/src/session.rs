@@ -1,3 +1,4 @@
+//! Manages the peer-to-peer sission over a single TCP connection
 use crate::protocol::Message;
 use crate::transport::{recv, send};
 use anyhow::Result;
@@ -7,6 +8,7 @@ use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::{mpsc, Mutex};
 
+/// The session itself, using protocol and transport
 pub async fn run(
     stream: TcpStream,
     doc: Arc<Mutex<Document>>,
