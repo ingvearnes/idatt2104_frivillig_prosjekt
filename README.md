@@ -49,7 +49,7 @@ Implementasjonen for hvorfor dette virker er at koden velger at størst id skal 
 
 Vi kjører fra peer/main.rs. main.rs bruker session.rs som igjen bruker protocol.rs og transport.rs. Slik vil main.rs få opprettet en kobling mellom to peers. 
 
-main.rs bruker også char.rs, op.rs og doc.rs. Den tar inn en char, som den putter inn i op-vektor som til slutt blir plassert i doc.rs. Det er hos doc.rs selve merge skjer, dokumentet må selv håndtere merging-problemer. 
+main.rs bruker også char.rs, op.rs og doc.rs. Den registrere en input som konverteres til char. Denne blir plassert inn i det lokale dokumentet før den også blir puttet inn som en operasjon som sendes ut til peer. Slik vil også peer se din input. Det er hos doc.rs selve merge skjer, dokumentet må selv håndtere merging-problemer. 
 
 Detaljer for selve kode fins i rustdoc.
 
